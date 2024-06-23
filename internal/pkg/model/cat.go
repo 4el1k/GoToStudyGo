@@ -8,7 +8,8 @@ import (
 
 //easyjson:json
 type Cat struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-	Age  int       `json:"age"`
+	Id           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Age          int       `json:"age"`
+	PasswordHash []byte    `json:"-"`
 }
