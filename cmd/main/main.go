@@ -2,6 +2,7 @@ package main
 
 import (
 	"awesomeProject/internal/pkg/handler/handler"
+	"awesomeProject/internal/pkg/middleware"
 	repo "awesomeProject/internal/pkg/repository"
 	srv "awesomeProject/internal/pkg/service"
 	"context"
@@ -53,7 +54,7 @@ func run() (err error) {
 	//
 	//
 	// ============================Init layers============================ //
-
+	auth_mw := middleware.New(log)
 	catRepo := repo.NewCatRepository(db, log)
 	catSrv := srv.NewCatService(catRepo, log)
 	catHandler := handler.NewCatHandler(catSrv, log)
@@ -62,10 +63,21 @@ func run() (err error) {
 	//
 	// ============================Create router============================ //
 	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
-	r.HandleFunc("/cat", catHandler.Create).Methods(http.MethodPost)
+	cat := r.PathPrefix("/cat").Subrouter()
+	{
+		cat.Handle("", auth_mw(http.HandlerFunc(catHandler.Create))).
+			Methods(http.MethodPost, http.MethodOptions)
+		cat.Handle("", auth_mw(http.HandlerFunc(catHandler.Update))).
+			Methods(http.MethodPut, http.MethodOptions)
+		cat.Handle("/{id:[0-9a-fA-F-]+}", auth_mw(http.HandlerFunc(catHandler.GetById))).
+			Methods(http.MethodGet, http.MethodOptions)
+		cat.Handle("/{id:[0-9a-fA-F-]+}", auth_mw(http.HandlerFunc(catHandler.DeleteById))).
+			Methods(http.MethodDelete, http.MethodOptions)
+	}
+	/*r.HandleFunc("/cat", catHandler.Create).Methods(http.MethodPost)
 	r.HandleFunc("/cat", catHandler.Update).Methods(http.MethodPut)
 	r.HandleFunc("/cat/{id:[0-9a-fA-F-]+}", catHandler.DeleteById).Methods(http.MethodDelete)
-	r.HandleFunc("/cat/{id:[0-9a-fA-F-]+}", catHandler.GetById).Methods(http.MethodGet)
+	r.HandleFunc("/cat/{id:[0-9a-fA-F-]+}", catHandler.GetById).Methods(http.MethodGet)*/
 	server := http.Server{
 		Addr:    ":8081",
 		Handler: r,
